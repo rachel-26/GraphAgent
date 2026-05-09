@@ -1,0 +1,221 @@
+{
+  "changing_facts": {
+    "queries": [
+      {
+        "day": 15,
+        "expected": "Boston",
+        "baseline": "New York",
+        "temporal": "Boston"
+      },
+      {
+        "day": 25,
+        "expected": "Chicago",
+        "baseline": "New York",
+        "temporal": "Chicago"
+      },
+      {
+        "day": 30,
+        "expected": "Chicago",
+        "baseline": "New York",
+        "temporal": "Chicago"
+      }
+    ],
+    "baseline_accuracy": [
+      0,
+      0,
+      0
+    ],
+    "temporal_accuracy": [
+      1,
+      1,
+      1
+    ],
+    "timeline": [
+      [
+        "Day 1",
+        "Alice moves to New York"
+      ],
+      [
+        "Day 10",
+        "Alice moves to Boston"
+      ],
+      [
+        "Day 20",
+        "Alice moves to Chicago"
+      ]
+    ]
+  },
+  "frequency_pattern": {
+    "queries": [],
+    "weight_history": {
+      "Python": [
+        [
+          5,
+          0.5141069471369327
+        ],
+        [
+          10,
+          0.3069812663574215
+        ],
+        [
+          15,
+          0.41046265159689294
+        ],
+        [
+          20,
+          0.37917059939018377
+        ],
+        [
+          25,
+          0.43114003706875453
+        ],
+        [
+          30,
+          0.20305314788714196
+        ]
+      ],
+      "Java": [
+        [
+          5,
+          0.5141069471369327
+        ],
+        [
+          10,
+          0.3069812663574215
+        ],
+        [
+          15,
+          0.41046265159689294
+        ],
+        [
+          20,
+          0.37917059939018377
+        ],
+        [
+          25,
+          0.43114003706875453
+        ],
+        [
+          30,
+          0.20305314788714196
+        ]
+      ],
+      "Rust": [
+        [
+          5,
+          0.37597999384921055
+        ],
+        [
+          10,
+          0.18409331758407313
+        ]
+      ]
+    },
+    "timeline": [
+      [
+        "Start",
+        "Initial facts loaded"
+      ]
+    ],
+    "final_comparison": {
+      "baseline": [
+        [
+          "knows",
+          "Python"
+        ],
+        [
+          "knows",
+          "Java"
+        ],
+        [
+          "knows",
+          "Rust"
+        ]
+      ],
+      "temporal": [
+        [
+          "knows",
+          "Python",
+          0.20305314788714196
+        ],
+        [
+          "knows",
+          "Java",
+          0.20305314788714196
+        ]
+      ]
+    }
+  },
+  "forgetting_test": {
+    "timeline": [
+      [
+        "Start",
+        "Added 20 edges"
+      ],
+      [
+        "Day 5",
+        "Edges remaining: 2/20"
+      ],
+      [
+        "Day 10",
+        "Edges remaining: 2/20"
+      ],
+      [
+        "Day 15",
+        "Edges remaining: 2/20"
+      ],
+      [
+        "Day 20",
+        "Edges remaining: 2/20"
+      ],
+      [
+        "Day 25",
+        "Edges remaining: 2/20"
+      ],
+      [
+        "Day 30",
+        "Edges remaining: 2/20"
+      ]
+    ],
+    "edge_count": [
+      [
+        "Start",
+        20
+      ],
+      [
+        "Day 5",
+        2
+      ],
+      [
+        "Day 10",
+        2
+      ],
+      [
+        "Day 15",
+        2
+      ],
+      [
+        "Day 20",
+        2
+      ],
+      [
+        "Day 25",
+        2
+      ],
+      [
+        "Day 30",
+        2
+      ]
+    ],
+    "forgotten_facts": [
+      "User2",
+      "User3",
+      "User4",
+      "User5",
+      "User6",
+      "User7",
+      "User8",
+      "User9"
+    ]
+  }
+}
