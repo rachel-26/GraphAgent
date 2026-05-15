@@ -1,78 +1,109 @@
 from datetime import datetime, timedelta
-import numpy as np
+from collections import defaultdict
+import copy
 
-from memory import BaseMemory, MemoryItem, TemporalGraphMemory, VectorMemory
+from memory.base_memory import MemoryItem
+from memory.temporal_graph_memory import TemporalGraphMemory
+from memory.vector_memory import VectorMemory
+from benchmark.datasets import load_tasks
+from benchmark.evaluator import Evaluator
 
 def run_experiment():
     print("="*60)
-    print("RESEARCH FRAMEWORK: Memory System Comparison")
+    print("RESEARCH EXPERIMENT RUNNER")
+    print("Hypothesis: Temporal graph memory outperforms standard vector retrieval")
+    print("in environments with evolving and conflicting user facts.")
     print("="*60)
 
     # Initialize memory systems
-    systems = {
-        "Vector Memory": VectorMemory(),
-        "Temporal Graph Memory": TemporalGraphMemory(decay_rate=0.01, strengthening_delta=0.2)
+    # We will instantiate them fresh for each task to avoid state bleed
+    system_classes = {
+        "VectorMemory": lambda: VectorMemory(),
+        "TemporalGraphMemory": lambda: TemporalGraphMemory(decay_rate=0.01, strengthening_delta=0.2)
     }
 
-    # Setup timeline
-    start_time = datetime.now()
-    
-    # Dataset
-    memories_to_add = [
-        MemoryItem(
-            text="Alice lives in New York",
-            timestamp=start_time,
-            metadata={"subject": "Alice", "relation": "lives_in", "object": "New York"}
-        ),
-        MemoryItem(
-            text="Bob knows Python",
-            timestamp=start_time,
-            metadata={"subject": "Bob", "relation": "knows", "object": "Python"}
-        ),
-        MemoryItem(
-            text="Bob works at TechCorp",
-            timestamp=start_time,
-            metadata={"subject": "Bob", "relation": "works_at", "object": "TechCorp"}
-        )
-    ]
+    tasks = load_tasks()
+    start_time = datetime(2025, 1, 1, 0, 0, 0)
 
-    print("\n[1] Adding initial memories to all systems...")
-    for name, system in systems.items():
-        for memory in memories_to_add:
-            system.add_memory(memory)
-    print("Memories successfully added.")
+    # Metrics storage: { system_name: { category: { metric: [scores] } } }
+    results = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
 
-    # Time passes
-    current_time = start_time + timedelta(days=5)
-    
-    # Alice moves
-    new_memory = MemoryItem(
-        text="Alice lives in Boston",
-        timestamp=current_time,
-        metadata={"subject": "Alice", "relation": "lives_in", "object": "Boston"}
-    )
-    
-    print(f"\n[2] Time advances to Day 5. New event: {new_memory.text}")
-    for name, system in systems.items():
-        system.update(current_time)
-        system.add_memory(new_memory)
+    print(f"Loaded {len(tasks)} benchmark tasks.\n")
 
-    # Time passes again
-    current_time = start_time + timedelta(days=10)
-    
-    print("\n[3] Time advances to Day 10. Querying 'Alice lives_in'...")
-    query = "Where does Alice live? (Alice lives_in)"
-    
-    print("\n--- Retrieval Results ---")
-    for name, system in systems.items():
-        system.update(current_time)
-        results = system.retrieve(query, k=2)
+    for system_name, system_factory in system_classes.items():
+        print(f"Evaluating {system_name}...")
         
-        print(f"\nSystem: {name}")
-        for i, res in enumerate(results):
-            mem = res["memory"]
-            score = res["score"]
-            print(f"  {i+1}. [{score:.3f}] {mem.text} (Time: {mem.timestamp.strftime('%Y-%m-%d %H:%M')})")
+        for task in tasks:
+            # Instantiate a fresh system for the task
+            system = system_factory()
+            
+            # Feed events
+            for event in task.events:
+                event_time = start_time + timedelta(hours=event.timestamp * 24) # interpreting timestamp as days
+                
+                # Update system time to process decay
+                system.update(event_time)
+                
+                # Create and add MemoryItem
+                mem_item = MemoryItem(
+                    text=event.text,
+                    timestamp=event_time,
+                    metadata=event.metadata
+                )
+                system.add_memory(mem_item)
+            
+            # Retrieve
+            # Let's say retrieval happens 1 day after the last event
+            retrieval_time = start_time + timedelta(hours=(task.events[-1].timestamp + 1) * 24)
+            system.update(retrieval_time)
+            retrieved = system.retrieve(task.query, k=5)
+            
+            # Evaluate
+            r_at_k = Evaluator.recall_at_k(retrieved, task.ground_truth, k=5)
+            mrr = Evaluator.mrr(retrieved, task.ground_truth)
+            contradiction = Evaluator.contradiction_accuracy(retrieved, task.ground_truth)
+            
+            # Save metrics
+            results[system_name][task.category]["Recall@5"].append(r_at_k)
+            results[system_name][task.category]["MRR"].append(mrr)
+            results[system_name][task.category]["Contradiction_Acc"].append(contradiction)
+            
+            # Memory Efficiency
+            # A simple metric: number of edges (graph) vs size of memory (vector)
+            if system_name == "TemporalGraphMemory":
+                final_size = system.graph.number_of_edges()
+            else:
+                final_size = len(system.memories)
+            results[system_name][task.category]["Memory_Size"].append(final_size)
+
+    # Print Report
+    print("\n" + "="*60)
+    print("EVALUATION RESULTS")
+    print("="*60)
+    
+    # We will compute the average of each metric per category per system
+    metrics_to_report = ["Recall@5", "MRR", "Contradiction_Acc", "Memory_Size"]
+    
+    categories = sorted(list(set(task.category for task in tasks)))
+    
+    for category in categories:
+        print(f"\n[ Category: {category.upper()} ]")
+        # Print header
+        header = f"{'System':<25}" + "".join([f"{m:>18}" for m in metrics_to_report])
+        print("-" * len(header))
+        print(header)
+        print("-" * len(header))
+        
+        for system_name in system_classes.keys():
+            row_str = f"{system_name:<25}"
+            for metric in metrics_to_report:
+                scores = results[system_name][category][metric]
+                avg = sum(scores) / len(scores) if scores else 0
+                if metric == "Memory_Size":
+                    row_str += f"{avg:>18.1f}"
+                else:
+                    row_str += f"{avg:>18.2f}"
+            print(row_str)
 
     print("\n" + "="*60)
     print("EXPERIMENT COMPLETE")

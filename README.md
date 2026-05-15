@@ -1,26 +1,53 @@
-# Temporal Edge Weighting Memory Graph
+# Memory Systems Research Framework
 
-This project implements a Memory Graph with **Temporal Edge Weighting** designed to improve context retrieval over time compared to a standard, static baseline memory graph. It simulates how memory strengthens with frequent access and decays over time when unused.
+This project is an experimental research framework designed to rigorously benchmark and compare different memory architectures for AI agents. The current focus is evaluating **Temporal Graph Memory** against standard **Vector Memory** (RAG) paradigms.
 
-## Key Features
+The core hypothesis this framework tests is:
+> *Temporal graph memory outperforms standard vector retrieval in environments with evolving and conflicting user facts.*
 
-- **Temporal Decay**: Facts that are not accessed for a long period gradually lose their weight.
-- **Access Strengthening**: Frequently queried or retrieved facts have their edge weights strengthened.
-- **Automatic Forgetting**: Edges that drop below a defined forgetting threshold are automatically pruned from the graph.
-- **Dynamic Adaptability**: The system natively adapts to changing facts (e.g., when a person's location changes) by prioritizing the most recent and frequently reinforced information.
+## Project Structure
 
-## Core Files
+The codebase is organized into a clean, reproducible research structure:
 
-- `temporal_memory_graph.py`: Contains the `TemporalMemoryGraph` implementation, utilizing `networkx` to build a time-aware memory graph.
-- `baseline_memory_graph.py`: Contains the `BaselineMemoryGraph`, a static graph used for comparing against the temporal implementation.
-- `demo.py`: A quick, step-by-step interactive demonstration of the temporal dynamics (adding facts, querying, decaying, and strengthening).
-- `experiment.py`: A comprehensive simulation that tests both graphs across three scenarios:
-  1. **Changing Facts**: How well the system remembers updated data (e.g., Alice moves to different cities).
-  2. **Frequency Pattern**: How frequently accessed facts get higher retrieval priority.
-  3. **Forgetting Mechanism**: Ensuring unused facts are properly pruned from memory.
-- `requirements.txt`: Python dependencies.
+```text
+GraphMemory/
+├── memory/                   # Memory System Implementations
+│   ├── base_memory.py        # Abstract interface (BaseMemory, MemoryItem)
+│   ├── temporal_graph_memory.py # Graph-based memory with time-decay
+│   └── vector_memory.py      # Standard embeddings-based memory baseline
+│
+├── benchmark/                # Evaluation Infrastructure
+│   ├── datasets.py           # Synthetic ground-truth tasks
+│   └── evaluator.py          # Objective evaluation metrics (Recall@K, MRR, etc.)
+│
+├── experiments/              # Experiment Runners
+│   └── compare_memories.py   # Core benchmarking loop
+│
+└── main.py                   # Entry point
+```
 
-## Installation
+## Key Components
+
+### 1. The Memory Interface
+All memory systems inherit from `BaseMemory` and accept standardized `MemoryItem`s. This ensures tests are perfectly controlled: same tasks, same queries, same load, only the backend changes.
+
+### 2. Benchmark Datasets
+The `benchmark/datasets.py` module defines ground-truth tasks across critical memory categories:
+- **Static Facts**: Basic, unchanging retrieval.
+- **Conflicting Facts**: Testing contradiction resolution when newer truths overwrite older ones.
+- **Long-Term Retention**: Testing memory survival amidst noise over long delays.
+- **Reinforcement**: Testing if frequently accessed memories survive forgetting mechanisms.
+
+### 3. Evaluation Metrics
+We rely on rigorous, objective evaluation metrics (`benchmark/evaluator.py`):
+- **Recall@K**: Is the correct answer in the top-K retrieved memories?
+- **Mean Reciprocal Rank (MRR)**: How early does the correct memory appear?
+- **Contradiction Accuracy**: Does the system retrieve the *newest* truth as the #1 rank when faced with conflicts?
+- **Memory Efficiency**: What is the final storage footprint (edges vs. items) after the task completes?
+
+## Getting Started
+
+### Installation
 
 Ensure you have Python 3.8+ installed, then run:
 
@@ -28,31 +55,19 @@ Ensure you have Python 3.8+ installed, then run:
 pip install -r requirements.txt
 ```
 
-## Usage
+*Note: The `VectorMemory` utilizes `sentence-transformers`. If it fails to install on your environment, the system gracefully falls back to a mocked TF-IDF vectorizer so experiments can still run.*
 
-### 1. Run the Live Demo
-To see a quick demonstration of facts being added, queried, and decayed:
+### Running the Benchmark
 
-```bash
-python demo.py
-```
-
-### 2. Run the Full Experiment
-To run the automated test scenarios and generate visualization charts:
+To execute the core experiment loop and view the evaluation matrix:
 
 ```bash
-python experiment.py
+python main.py
 ```
 
-This will run all three scenarios and produce:
-- `experiment_results.png`: Visual charts comparing the Baseline vs Temporal graph accuracy, weight evolution, and forgetting edge counts.
-- `experiment_data.json`: The raw experiment data.
+This will run all configured memory systems against the synthetic benchmark tasks, applying simulated time jumps, and output a detailed comparative matrix of the results.
 
-## Architecture & Concepts
-
-The `TemporalMemoryGraph` is built on top of `networkx.MultiDiGraph`.
-- **`decay_rate`**: Determines how fast memory weights decay per hour.
-- **`strengthening_delta`**: Determines how much a fact's weight increases upon successful retrieval.
-- **`forgetting_threshold`**: The minimum weight boundary. If an edge's weight drops below this value, the fact is "forgotten" and the edge is removed from the graph.
-
-This setup is highly beneficial for Agentic AI and LLM memory pipelines, ensuring the context window is populated with the most relevant, recent, and frequently used information rather than being flooded with outdated facts.
+## Future Directions
+- Implementing LLM-based metadata extraction (parsing `MemoryItem.text` directly into graph nodes/edges).
+- Scaling the benchmark dataset with more complex, real-world conversational datasets.
+- Exploring hybrid retrieval methods combining embeddings with graph traversal.
