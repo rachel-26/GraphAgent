@@ -5,6 +5,7 @@ import copy
 from memory.base_memory import MemoryItem
 from memory.temporal_graph_memory import TemporalGraphMemory
 from memory.vector_memory import VectorMemory
+from memory.hybrid_graph_memory import HybridGraphMemory
 from benchmark.datasets import load_tasks
 from benchmark.evaluator import Evaluator
 
@@ -19,7 +20,8 @@ def run_experiment():
     # We will instantiate them fresh for each task to avoid state bleed
     system_classes = {
         "VectorMemory": lambda: VectorMemory(),
-        "TemporalGraphMemory": lambda: TemporalGraphMemory(decay_rate=0.01, strengthening_delta=0.2)
+        "OldTemporalGraph": lambda: TemporalGraphMemory(decay_rate=0.01, strengthening_delta=0.2),
+        "HybridGraphMemory": lambda: HybridGraphMemory(decay_rate=0.01, strengthening_delta=0.2, alpha_semantic=0.7, beta_temporal=0.3)
     }
 
     tasks = load_tasks()
@@ -70,7 +72,7 @@ def run_experiment():
             
             # Memory Efficiency
             # A simple metric: number of edges (graph) vs size of memory (vector)
-            if system_name == "TemporalGraphMemory":
+            if "Graph" in system_name:
                 final_size = system.graph.number_of_edges()
             else:
                 final_size = len(system.memories)

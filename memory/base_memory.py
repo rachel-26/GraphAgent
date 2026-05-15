@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import List, Dict, Any
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import Optional
 
 
 @dataclass
@@ -10,6 +11,7 @@ class MemoryItem:
     timestamp: datetime
     importance: float = 1.0
     metadata: Dict[str, Any] = field(default_factory=dict)
+    embedding: Optional[Any] = None
 
 
 class BaseMemory(ABC):
